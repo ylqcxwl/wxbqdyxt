@@ -1,20 +1,11 @@
-name: Build OuterBoxPrinter_PureData
+name: 打包文件
 
-# 触发条件：main 分支的 push 和 pull request
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+# ============ 触发方式 ============
+# 完全移除 push / pull_request
+# 仅保留手动触发
+on: workflow_dispatch
 
-# 明确指定触发文件（可选，更保险）
-# 删除 paths = 所有文件都会触发
-# 保留以下可确保 .py / .json 改动必触发
-  # paths:
-  #   - '**.py'
-  #   - '**.json'
-  #   - '.github/workflows/**'
-
+# ============ 构建任务 ============
 jobs:
   build:
     runs-on: windows-latest
@@ -27,7 +18,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # 完整历史，防止浅克隆问题
+          fetch-depth: 0
 
       # 2. 设置 Python
       - name: Set up Python
@@ -49,19 +40,35 @@ jobs:
             --noconsole `
             --name=OuterBoxPrinter_PureData `
             main_pure.py
+          
+          $exe = "dist/OuterBoxPrinter_PureData.exe"
+          if (Test-Path $exe) {
+            $size = (Get-Item $exe).Length / 1MB
+            echo "构建成功: $exe (大小: $($size.ToString('F2')) MB)"
+          } else {
+            exit 1
+          }
         shell: powershell
 
       # 5. 上传构建产物
       - name: Upload executable
         uses: actions/upload-artifact@v4
         with:
-          name: OuterBoxPrinter_PureData
+          name: OuterBoxPrinter_PureData_Build_${{ github.run_number }}
           path: dist/OuterBoxPrinter_PureData.exe
           if-no-files-found: error
 
-      # 6. （可选）发布到 GitHub Releases
-      # - name: Create Release
-      #   if: startsWith(github.ref, 'refs/tags/')
-      #   uses: softprops/action-gh-release@v2
-      #   with:
-      #     files: dist/OuterBoxPrinter_PureData.exe
+      # 6. 自动发布 Release（推荐）
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Build #${{ github.run_number }}
+          body: |
+            手动构建触发
+            - 提交: ${{ github.sha }}
+            - 触发者: @${{ github.actor }}
+            - 时间: ${{ github.event.head_commit.timestamp }}
+          files: dist/OuterBoxPrinter_PureData.exe
+          draft: false
+          prerelease: false
