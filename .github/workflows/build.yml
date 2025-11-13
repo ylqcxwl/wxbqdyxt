@@ -1,6 +1,6 @@
+# .github/workflows/build.yml
 name: Build OuterBoxPrinter_PureData
 
-# 仅手动触发
 on: workflow_dispatch
 
 jobs:
@@ -31,14 +31,15 @@ jobs:
             --name=OuterBoxPrinter_PureData `
             main_pure.py
 
-          # 统计文件大小
+          # 统计大小
           $folder = 'dist/OuterBoxPrinter_PureData'
           $size = (Get-ChildItem $folder -Recurse | Measure-Object -Property Length -Sum).Sum / 1MB
           Write-Host ('构建成功: {0} (总大小: {1:F2} MB)' -f $folder, $size)
 
-          # 打包成 ZIP
-          Compress-Archive -Path "$folder/*" -DestinationPath dist/OuterBoxPrinter_PureData.zip -Force
-          Write-Host "ZIP 打包完成: dist/OuterBoxPrinter_PureData.zip"
+          # 打包 ZIP
+          $zipPath = 'dist/OuterBoxPrinter_PureData.zip'
+          Compress-Archive -Path "$folder/*" -DestinationPath $zipPath -Force
+          Write-Host ('ZIP 打包完成: {0}' -f $zipPath)
         shell: powershell
 
       - name: Upload ZIP package
