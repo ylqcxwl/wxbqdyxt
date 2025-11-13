@@ -1,0 +1,9 @@
+{
+  "template_dir": "templates",
+  "products": [
+    {
+      "name": "外箱A",
+      "template": "OuterBox_A"
+    }
+  ]
+}
