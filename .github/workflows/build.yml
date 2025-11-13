@@ -1,35 +1,29 @@
-name: 打包文件
+name: Build OuterBoxPrinter_PureData
 
-# ============ 触发方式 ============
-# 完全移除 push / pull_request
-# 仅保留手动触发
+# 仅手动触发
 on: workflow_dispatch
 
-# ============ 构建任务 ============
 jobs:
   build:
     runs-on: windows-latest
     permissions:
       contents: read
-      packages: write
 
     steps:
       # 1. 拉取代码
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      # 2. 设置 Python
+      # 2. 设置 Python + 自动缓存
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-          cache: 'pip'
+          cache: 'pip'  # 自动识别 requirements.txt
 
-      # 3. 安装 PyInstaller
-      - name: Install PyInstaller
-        run: pip install pyinstaller==6.16.0
+      # 3. 安装依赖（自动跳过，已缓存）
+      - name: Install dependencies
+        run: pip install -r requirements.txt
 
       # 4. 构建 exe
       - name: Build with PyInstaller
@@ -40,17 +34,13 @@ jobs:
             --noconsole `
             --name=OuterBoxPrinter_PureData `
             main_pure.py
-          
+
           $exe = "dist/OuterBoxPrinter_PureData.exe"
-          if (Test-Path $exe) {
-            $size = (Get-Item $exe).Length / 1MB
-            echo "构建成功: $exe (大小: $($size.ToString('F2')) MB)"
-          } else {
-            exit 1
-          }
+          $size = (Get-Item $exe).Length / 1MB
+          Write-Host "构建成功: $exe (大小: $($size.ToString('F2')) MB)"
         shell: powershell
 
-      # 5. 上传构建产物
+      # 5. 上传产物
       - name: Upload executable
         uses: actions/upload-artifact@v4
         with:
@@ -58,8 +48,8 @@ jobs:
           path: dist/OuterBoxPrinter_PureData.exe
           if-no-files-found: error
 
-      # 6. 自动发布 Release（推荐）
-      - name: Create GitHub Release
+      # 6. 自动发布 Release
+      - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
@@ -68,7 +58,4 @@ jobs:
             手动构建触发
             - 提交: ${{ github.sha }}
             - 触发者: @${{ github.actor }}
-            - 时间: ${{ github.event.head_commit.timestamp }}
           files: dist/OuterBoxPrinter_PureData.exe
-          draft: false
-          prerelease: false
