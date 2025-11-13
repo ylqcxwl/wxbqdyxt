@@ -1,15 +1,20 @@
 name: Build Release
-on: [push, release]
+on: [push, release]  # 触发条件
 jobs:
   build:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4  # 也升级 checkout 到 v4
       - name: Set up Python
         uses: actions/setup-python@v4
-        with: { python-version: '3.10' }
+        with:
+          python-version: '3.10'
       - run: pip install -r requirements.txt pyinstaller
       - run: pyinstaller --onefile --windowed --noconsole --add-data "example_template.btw;." --add-data "config_pure.json;." --name=OuterBoxPrinter_PureData main_pure.py
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v3
-        with: { path: dist/*.exe }
+      - name: Upload Artifact  # v4 版本
+        uses: actions/upload-artifact@v4  # ← 关键修改
+        with:
+          name: dist-exe  # 工件名
+          path: dist/*.exe
+          compression-level: normal
+          retention-days: 30  # 可选：保留 30 天
