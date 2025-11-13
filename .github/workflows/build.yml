@@ -1,5 +1,5 @@
 # .github/workflows/build.yml
-name: Build OuterBoxPrinter_PureData
+name: 打包
 
 # 只手动触发
 on: workflow_dispatch
