@@ -1,13 +1,13 @@
-# .github/workflows/build.yml
 name: Build OuterBoxPrinter_PureData
 
+# 仅手动触发
 on: workflow_dispatch
 
 jobs:
   build:
     runs-on: windows-latest
     permissions:
-      contents: write   # 关键！允许创建 Release
+      contents: write
 
     steps:
       - name: Checkout repository
@@ -22,25 +22,30 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Build with PyInstaller
+      - name: Build with PyInstaller (--onedir)
         run: |
           pyinstaller `
-            --onefile `
+            --onedir `
             --windowed `
             --noconsole `
             --name=OuterBoxPrinter_PureData `
             main_pure.py
 
-          $exe = 'dist/OuterBoxPrinter_PureData.exe'
-          $size = (Get-Item $exe).Length / 1MB
-          Write-Host ('构建成功: {0} (大小: {1:F2} MB)' -f $exe, $size)
+          # 统计文件大小
+          $folder = 'dist/OuterBoxPrinter_PureData'
+          $size = (Get-ChildItem $folder -Recurse | Measure-Object -Property Length -Sum).Sum / 1MB
+          Write-Host ('构建成功: {0} (总大小: {1:F2} MB)' -f $folder, $size)
+
+          # 打包成 ZIP
+          Compress-Archive -Path "$folder/*" -DestinationPath dist/OuterBoxPrinter_PureData.zip -Force
+          Write-Host "ZIP 打包完成: dist/OuterBoxPrinter_PureData.zip"
         shell: powershell
 
-      - name: Upload executable
+      - name: Upload ZIP package
         uses: actions/upload-artifact@v4
         with:
-          name: OuterBoxPrinter_PureData_Build_${{ github.run_number }}
-          path: dist/OuterBoxPrinter_PureData.exe
+          name: OuterBoxPrinter_PureData_Portable
+          path: dist/OuterBoxPrinter_PureData.zip
           if-no-files-found: error
 
       - name: Create Release
@@ -48,10 +53,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: build-${{ github.run_number }}
-          name: Build #${{ github.run_number }}
+          tag_name: portable-${{ github.run_number }}
+          name: Portable Build #${{ github.run_number }}
           body: |
-            手动构建触发
+            便携版（--onedir 打包）
+            - 兼容 Windows 7+
+            - 无需 Python
+            - 解压即用
             - 提交: ${{ github.sha }}
             - 触发者: @${{ github.actor }}
-          files: dist/OuterBoxPrinter_PureData.exe
+          files: dist/OuterBoxPrinter_PureData.zip
