@@ -1,28 +1,47 @@
 name: Build OuterBoxPrinter_PureData
 
+# 触发条件：main 分支的 push 和 pull request
 on:
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
 
+# 明确指定触发文件（可选，更保险）
+# 删除 paths = 所有文件都会触发
+# 保留以下可确保 .py / .json 改动必触发
+  # paths:
+  #   - '**.py'
+  #   - '**.json'
+  #   - '.github/workflows/**'
+
 jobs:
   build:
     runs-on: windows-latest
+    permissions:
+      contents: read
+      packages: write
 
     steps:
-      - name: Checkout
+      # 1. 拉取代码
+      - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 完整历史，防止浅克隆问题
 
+      # 2. 设置 Python
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
+          cache: 'pip'
 
+      # 3. 安装 PyInstaller
       - name: Install PyInstaller
         run: pip install pyinstaller==6.16.0
 
-      - name: Build
+      # 4. 构建 exe
+      - name: Build with PyInstaller
         run: |
           pyinstaller `
             --onefile `
@@ -32,8 +51,17 @@ jobs:
             main_pure.py
         shell: powershell
 
-      - name: Upload
+      # 5. 上传构建产物
+      - name: Upload executable
         uses: actions/upload-artifact@v4
         with:
           name: OuterBoxPrinter_PureData
           path: dist/OuterBoxPrinter_PureData.exe
+          if-no-files-found: error
+
+      # 6. （可选）发布到 GitHub Releases
+      # - name: Create Release
+      #   if: startsWith(github.ref, 'refs/tags/')
+      #   uses: softprops/action-gh-release@v2
+      #   with:
+      #     files: dist/OuterBoxPrinter_PureData.exe
