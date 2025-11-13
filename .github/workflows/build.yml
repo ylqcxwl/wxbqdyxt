@@ -1,6 +1,7 @@
+# .github/workflows/build.yml
 name: Build OuterBoxPrinter_PureData
 
-# 仅手动触发
+# 只手动触发
 on: workflow_dispatch
 
 jobs:
@@ -10,22 +11,18 @@ jobs:
       contents: read
 
     steps:
-      # 1. 拉取代码
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. 设置 Python + 自动缓存
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-          cache: 'pip'  # 自动识别 requirements.txt
+          cache: 'pip'          # 自动读取 requirements.txt
 
-      # 3. 安装依赖（自动跳过，已缓存）
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      # 4. 构建 exe
       - name: Build with PyInstaller
         run: |
           pyinstaller `
@@ -35,12 +32,11 @@ jobs:
             --name=OuterBoxPrinter_PureData `
             main_pure.py
 
-          $exe = "dist/OuterBoxPrinter_PureData.exe"
+          $exe = 'dist/OuterBoxPrinter_PureData.exe'
           $size = (Get-Item $exe).Length / 1MB
-          Write-Host "构建成功: $exe (大小: $($size.ToString('F2')) MB)"
+          Write-Host ('构建成功: {0} (大小: {1:F2} MB)' -f $exe, $size)
         shell: powershell
 
-      # 5. 上传产物
       - name: Upload executable
         uses: actions/upload-artifact@v4
         with:
@@ -48,7 +44,6 @@ jobs:
           path: dist/OuterBoxPrinter_PureData.exe
           if-no-files-found: error
 
-      # 6. 自动发布 Release
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
